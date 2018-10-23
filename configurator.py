@@ -6,6 +6,7 @@
 
 import configparser
 import os
+from shutil import copyfile
 
 class Configurator():
 	"""
@@ -38,9 +39,9 @@ class Configurator():
 			self.config.add_section(section)
 			return_details += ' - Section was created'
 
-		# Set value and save_refresh loaded config.
+		# Set value and save loaded config.
 		self.config.set(section, option, value)
-		self.save_refresh()
+		self.save()
 
 		return {
 			'status': 'success',
@@ -98,9 +99,9 @@ class Configurator():
 		else:
 			result = self.config.remove_option(section, option)
 
-		# Success - save_refresh and return.
+		# Success - save and return.
 		if result:
-			self.save_refresh()
+			self.save()
 			return {
 				'status': 'success',
 				'details': 'Removed item'
@@ -123,9 +124,46 @@ class Configurator():
 			}
 	
 	"""
-		Write to config file and load fresh contents.
+		Write to config file.
 	"""
-	def save_refresh(self):
+	def save(self):
 		with open(self.full_name, 'w') as configfile:
 			self.config.write(configfile)
-		self.config.read(self.config.read(self.full_name))
+
+	"""
+		Creates to and restores from back up.
+		action should be either 'restore' or 'create'.
+		While creating a backup, the current file is the copy_ee meaning
+		it will be coppied to the copy_er, which in this case would be the 
+		backup. When restoring, the roles are reversed.
+		The backup config has the same full name as the current config with
+		'.bak' appended.
+	"""
+	def backup(self, action): 
+		backup_name = self.full_name + '.bak'
+		
+		# Determing which file is copy_er and which is copy_ee based on action
+		if action == 'restore':
+			copy_er, copy_ee = backup_name, self.full_name
+		elif action == 'create':
+			copy_er, copy_ee = self.full_name, backup_name
+		else:
+			return {
+				'status': 'failure',
+				'details': 'Invalid action'
+			}
+
+		# Ensure copy_er file exists.
+		if not os.path.isfile(copy_er):
+			return {
+				'status': 'failure',
+				'details': copy_er + ' doesn\'t exist'
+			}
+		
+		# Preform copy
+		copyfile(copy_er, copy_ee)
+		return {
+			'status': 'success',
+			'details': 'Action "' + action + '" complete'
+		}
+
