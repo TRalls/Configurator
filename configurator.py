@@ -29,39 +29,67 @@ class Configurator():
 	"""
 		Sets a value in the config file.
 		If the specified section doesn't exist, it is created.
+		To set mutliple options at once, pass None as options and a dict as value.
 	"""
 	def set(self, section, option, value):
-		# Default retrun.
-		return_details = 'Value has been set'
+		# Set single option.
+		if option:
+			# Default retrun.
+			return_details = 'Value has been set'
 
-		# Creates section if needed.
-		if not self.config.has_section(section):
-			self.config.add_section(section)
-			return_details += ' - Section was created'
+			# Creates section if needed.
+			if not self.config.has_section(section):
+				self.config.add_section(section)
+				return_details += ' - Section was created'
 
-		# Set value and save loaded config.
-		self.config.set(section, option, value)
-		self.save()
+			# Set value and save loaded config.
+			self.config.set(section, option, value)
+			self.save()
 
-		return {
-			'status': 'success',
-			'details': return_details
-		}
+			return {
+				'status': 'success',
+				'details': return_details
+			}
+		# Set multiple options.
+		else:
+			for key in value.keys():
+				if len(value[key]) > 0:
+					self.set(section, key, value[key])
+			return {
+				'status': 'success',
+				'details': 'All values have been set'
+			}
 
 	"""
-		Get a value from the config.
+		Get a value from the config. If no option is specified, all options
+		are returned in the form of a dict.
 	"""
-	def get(self, section, option):
+	def get(self, section, option=None):
 		# Check if section doesn't exist.
-		if not self.config.has_option(section, option):
+		if not self.config.has_section(section):
 			return {
 				'status': 'failure',
-				'details': 'Section or Option doesn\'t exist'
+				'details': 'Section doesn\'t exist'
 			}
+		# If option is specified.
+		if option:
+			# Ensure option exists.
+			if not self.config.has_option(section, option):
+				return {
+					'status': 'failure',
+					'details': 'Option doesn\'t exist'
+				}
+			details = self.config.get(section, option)
+		# No option specified, get all options.
+		else:
+			details = {}
+			for key in self.list(section)['details']:
+				details[key] = self.config.get(section, key)
+
 		# Section exists.
 		return {
 			'status': 'success',
-			'details': self.config.get(section, option)
+			'details': details
 		}
 	
 	"""
